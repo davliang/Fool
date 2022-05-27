@@ -12,3 +12,6 @@ A library for interacting with Duo.
 
 # Fool.FcmLib
 A library for interacting with Google's FCM to receive push notifications.
+
+# Fool.UnitTests
+An NUnit suite of tests.
