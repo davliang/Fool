@@ -1,5 +1,5 @@
 ﻿using Fool.FcmLib;
-
+using Google.Protobuf;
 using CheckinProto;
 
 namespace Fool.TestConsole
@@ -12,10 +12,8 @@ namespace Fool.TestConsole
             string senderId = "848238537804"; // FCM Duo SenderID
 
             FcmReceiver receiver = new FcmReceiver(senderId);
-            Google.Protobuf.JsonFormatter formatter = new Google.Protobuf.JsonFormatter(new Google.Protobuf.JsonFormatter.Settings(true));
-            AndroidCheckinResponse response = receiver.Register();
-            string sResponse = formatter.Format(response);
-            Console.WriteLine(sResponse);
+            AndroidCheckinResponse response = receiver.Checkin();
+            Console.WriteLine(response.ToString());
         }
     }
 }

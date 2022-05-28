@@ -4,7 +4,6 @@ using CheckinProto;
 using static CheckinProto.ChromeBuildProto.Types;
 
 using Flurl.Http;
-using Flurl.Http.Protobuf;
 
 
 namespace Fool.FcmLib
@@ -61,20 +60,25 @@ namespace Fool.FcmLib
             // First RegisterGCM
         }
 
-        public AndroidCheckinResponse Register()
+        public AndroidCheckinResponse Checkin()
         {
             AndroidCheckinRequest request = GetCheckinRequest();
-            Task<HttpResponseMessage> rawResponse =
+            ByteArrayContent content = new ByteArrayContent(request.ToByteArray());
+
+            Task<IFlurlResponse> checkin = 
                 CheckinUrl
-                .PostProtobufAsync(request);
-            rawResponse.Wait();
+                .WithHeader("Accept", "application/x-protobuf")
+                .WithHeader("Content-Type", "application/x-protobuf")
+                .PostAsync(content);
+            checkin.Wait();
 
             using (MemoryStream ms = new MemoryStream())
             {
-                rawResponse.Result.Content.CopyTo(ms, null, CancellationToken.None);
+                checkin.Result.ResponseMessage.Content.CopyTo(ms, null, CancellationToken.None);
                 ms.Seek(0, SeekOrigin.Begin);
 
-                return AndroidCheckinResponse.Parser.ParseFrom(ms);
+                AndroidCheckinResponse response = AndroidCheckinResponse.Parser.ParseFrom(ms);
+                return response;
             }
         }
 
