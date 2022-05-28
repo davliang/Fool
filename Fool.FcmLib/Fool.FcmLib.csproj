@@ -1,13 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.21.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.21.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flurl.Http.Protobuf\Flurl.Http.Protobuf.csproj" />
   </ItemGroup>
 
 </Project>
