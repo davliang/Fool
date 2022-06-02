@@ -1,4 +1,6 @@
-﻿using Google.Protobuf;
+﻿using System.Security.Cryptography;
+
+using Google.Protobuf;
 
 using CheckinProto;
 using static CheckinProto.ChromeBuildProto.Types;
@@ -27,13 +29,14 @@ namespace Fool.FcmLib
         public const string HostStub = "wp:receiver.push.com#";
         public readonly string ReceiverId = Guid.NewGuid().ToString(); // Maybe only needed once. If not, save with config.
 
-        public const string OldServerKeyRaw = "BDOU99+h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv+4/l2LxQcYwhqby2xGpWwzjfAnG4=";
-        public const string OldServerKeyEscaped = "BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4";
+        public const string SenderKey = "BDOU99+h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv+4/l2LxQcYwhqby2xGpWwzjfAnG4="; // Unescaped Default Vapid Key
+        public const string SenderKeyEscaped = "BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4"; // Default Vapid Key
 
-        public const string ServerKey = "AAAAoXfqSqk:APA91bFZqkZiq_Bfk6ak2cJhU24gJdHGRXRS-E6mFeLXa6psFP4kDRPHsTbZEt-U07CtoiEw-kbdHUbSkc1XbVJg_0nYYFB1wDVTuMHz-K5zWIVYkLPwMJnHIMPedN1QbIHymEC5D187";
+        public const string GcmRegisterUrl = "https://android.clients.google.com/c2dm/register3";
+        public const string GcmCheckinUrl = "https://android.clients.google.com/checkin";
 
-        public const string RegisterUrl = "https://android.clients.google.com/c2dm/register3";
-        public const string CheckinUrl = "https://android.clients.google.com/checkin";
+        public const string FcmSubscribeUrl = "https://fcm.googleapis.com/fcm/connect/subscribe";
+        public const string FcmEndpointUrl = "https://fcm.googleapis.com/fcm/send";
 
         public FcmReceiver(string senderId)
         {
@@ -64,43 +67,49 @@ namespace Fool.FcmLib
             // First RegisterGCM
         }
 
-        public struct RegisterPayload
+        public string RegisterFCM(string token)
         {
-            [JsonProperty("app")]
-            public string GenericApp;
-            [JsonProperty("X-subtype")]
-            public string AppId;
-            [JsonProperty("device")]
-            public string DeviceId;
-            [JsonProperty("sender")]
-            public string ServerKey;
-        }
-        private async Task HandleBeforeCallAsync(FlurlCall call)
-        {
-            Console.WriteLine("Before ---------------------");
-            Console.WriteLine("----------------------------");
-        }
-        private async Task HandleAfterCallAsync(FlurlCall call)
-        {
-            Console.WriteLine("After ----------------------");
-            Console.WriteLine("----------------------------");
+            return "";
         }
 
-        public string Register(ulong androidId, ulong securityToken)
+        public string CreateKeys()
+        {
+            // Create an ECDH prime256v1
+            // Generate keys from them <= Public and Private Keys
+            // Get Base64 versions of the key
+            // Get 16 random bytes as a base64 <= AuthSecret
+
+            return "";
+        }
+
+        // Use for logging later on
+        //
+        // private async Task HandleBeforeCallAsync(FlurlCall call)
+        // {
+        //     // Console.WriteLine("Before ---------------------");
+        //     // Console.WriteLine("----------------------------");
+        // }
+        // private async Task HandleAfterCallAsync(FlurlCall call)
+        // {
+        //     // Console.WriteLine("After ----------------------");
+        //     // Console.WriteLine("----------------------------");
+        // }
+
+        public string RegisterGCM(ulong androidId, ulong securityToken)
         {
             List<KeyValuePair<string, string>> listPayload = new List<KeyValuePair<string, string>>();
             listPayload.Add(new KeyValuePair<string, string>("app", "org.chromium.linux"));
             listPayload.Add(new KeyValuePair<string, string>("X-subtype", $"{HostStub}{ReceiverId}"));
             listPayload.Add(new KeyValuePair<string, string>("device", $"{androidId}"));
-            listPayload.Add(new KeyValuePair<string, string>("sender", $"{OldServerKeyEscaped}"));
+            listPayload.Add(new KeyValuePair<string, string>("sender", $"{SenderKeyEscaped}"));
 
-            FlurlHttp.Configure(settings => settings.BeforeCallAsync = HandleBeforeCallAsync);
-            FlurlHttp.Configure(settings => settings.AfterCallAsync = HandleAfterCallAsync);
+            // FlurlHttp.Configure(settings => settings.BeforeCallAsync = HandleBeforeCallAsync);
+            // FlurlHttp.Configure(settings => settings.AfterCallAsync = HandleAfterCallAsync);
 
             Task<IFlurlResponse> register =
-            RegisterUrl
+            GcmRegisterUrl
             .WithHeader("Authorization", $"AidLogin {androidId}:{securityToken}")
-            //.WithHeader("Content-Type", "application/x-www-form-urlencoded")
+            .WithHeader("Content-Type", "application/x-www-form-urlencoded")
             .AllowAnyHttpStatus()
             .PostUrlEncodedAsync(listPayload);
             //register.Wait();
@@ -117,7 +126,7 @@ namespace Fool.FcmLib
             ByteArrayContent content = new ByteArrayContent(request.ToByteArray());
 
             Task<IFlurlResponse> checkin = 
-                CheckinUrl
+                GcmCheckinUrl
                 .WithHeader("Accept", "application/x-protobuf")
                 .WithHeader("Content-Type", "application/x-protobuf")
                 .PostAsync(content);

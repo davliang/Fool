@@ -13,7 +13,7 @@ namespace Fool.TestConsole
             FcmReceiver receiver = new FcmReceiver(senderId);
             AndroidCheckinResponse response = receiver.Checkin();
             Console.WriteLine(response.ToString());
-            Console.WriteLine(receiver.Register(response.AndroidId, response.SecurityToken));
+            Console.WriteLine(receiver.RegisterGCM(response.AndroidId, response.SecurityToken));
         }
     }
 }
