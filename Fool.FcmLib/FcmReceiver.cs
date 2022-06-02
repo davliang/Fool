@@ -4,7 +4,9 @@ using CheckinProto;
 using static CheckinProto.ChromeBuildProto.Types;
 
 using Flurl.Http;
+using System.Text.Json.Serialization;
 
+using Newtonsoft.Json;
 
 namespace Fool.FcmLib
 {
@@ -25,8 +27,10 @@ namespace Fool.FcmLib
         public const string HostStub = "wp:receiver.push.com#";
         public readonly string ReceiverId = Guid.NewGuid().ToString(); // Maybe only needed once. If not, save with config.
 
-        public const string ServerKeyRaw = "BDOU99+h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv+4/l2LxQcYwhqby2xGpWwzjfAnG4=";
-        public const string ServerKeyEscaped = "BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4";
+        public const string OldServerKeyRaw = "BDOU99+h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv+4/l2LxQcYwhqby2xGpWwzjfAnG4=";
+        public const string OldServerKeyEscaped = "BDOU99-h67HcA6JeFXHbSNMu7e2yNNu3RzoMj8TM4W88jITfq7ZmPvIM1Iv-4_l2LxQcYwhqby2xGpWwzjfAnG4";
+
+        public const string ServerKey = "AAAAoXfqSqk:APA91bFZqkZiq_Bfk6ak2cJhU24gJdHGRXRS-E6mFeLXa6psFP4kDRPHsTbZEt-U07CtoiEw-kbdHUbSkc1XbVJg_0nYYFB1wDVTuMHz-K5zWIVYkLPwMJnHIMPedN1QbIHymEC5D187";
 
         public const string RegisterUrl = "https://android.clients.google.com/c2dm/register3";
         public const string CheckinUrl = "https://android.clients.google.com/checkin";
@@ -60,6 +64,53 @@ namespace Fool.FcmLib
             // First RegisterGCM
         }
 
+        public struct RegisterPayload
+        {
+            [JsonProperty("app")]
+            public string GenericApp;
+            [JsonProperty("X-subtype")]
+            public string AppId;
+            [JsonProperty("device")]
+            public string DeviceId;
+            [JsonProperty("sender")]
+            public string ServerKey;
+        }
+        private async Task HandleBeforeCallAsync(FlurlCall call)
+        {
+            Console.WriteLine("Before ---------------------");
+            Console.WriteLine("----------------------------");
+        }
+        private async Task HandleAfterCallAsync(FlurlCall call)
+        {
+            Console.WriteLine("After ----------------------");
+            Console.WriteLine("----------------------------");
+        }
+
+        public string Register(ulong androidId, ulong securityToken)
+        {
+            List<KeyValuePair<string, string>> listPayload = new List<KeyValuePair<string, string>>();
+            listPayload.Add(new KeyValuePair<string, string>("app", "org.chromium.linux"));
+            listPayload.Add(new KeyValuePair<string, string>("X-subtype", $"{HostStub}{ReceiverId}"));
+            listPayload.Add(new KeyValuePair<string, string>("device", $"{androidId}"));
+            listPayload.Add(new KeyValuePair<string, string>("sender", $"{OldServerKeyEscaped}"));
+
+            FlurlHttp.Configure(settings => settings.BeforeCallAsync = HandleBeforeCallAsync);
+            FlurlHttp.Configure(settings => settings.AfterCallAsync = HandleAfterCallAsync);
+
+            Task<IFlurlResponse> register =
+            RegisterUrl
+            .WithHeader("Authorization", $"AidLogin {androidId}:{securityToken}")
+            //.WithHeader("Content-Type", "application/x-www-form-urlencoded")
+            .AllowAnyHttpStatus()
+            .PostUrlEncodedAsync(listPayload);
+            //register.Wait();
+
+            Task<string> temp = register.Result.GetStringAsync();
+            temp.Wait();
+
+            return temp.Result;
+        }
+
         public AndroidCheckinResponse Checkin()
         {
             AndroidCheckinRequest request = GetCheckinRequest();
@@ -82,7 +133,7 @@ namespace Fool.FcmLib
             }
         }
 
-        public AndroidCheckinRequest GetCheckinRequest(long androidId = 0, ulong securityToken = 0UL)
+        public AndroidCheckinRequest GetCheckinRequest(long deviceId = 0L, ulong securityToken = 0UL)
         {
             AndroidCheckinRequest request = new AndroidCheckinRequest
             {
@@ -99,7 +150,7 @@ namespace Fool.FcmLib
                     }
                 },
                 Version = 3,
-                Id = androidId,
+                Id = deviceId,
                 SecurityToken = securityToken
             };
 

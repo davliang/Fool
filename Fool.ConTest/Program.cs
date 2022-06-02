@@ -8,12 +8,12 @@ namespace Fool.TestConsole
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
             string senderId = "848238537804"; // FCM Duo SenderID
 
             FcmReceiver receiver = new FcmReceiver(senderId);
             AndroidCheckinResponse response = receiver.Checkin();
             Console.WriteLine(response.ToString());
+            Console.WriteLine(receiver.Register(response.AndroidId, response.SecurityToken));
         }
     }
 }
